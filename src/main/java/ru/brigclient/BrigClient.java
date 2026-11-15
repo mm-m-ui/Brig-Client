@@ -12,7 +12,6 @@ import org.lwjgl.glfw.GLFW;
 import ru.brigclient.gui.clickgui.ClickGuiScreen;
 import ru.brigclient.module.ModuleManager;
 import ru.brigclient.render.HudRenderer;
-import ru.brigclient.util.ColorUtil;
 
 /**
  * Brig Client - Modular utility client for Minecraft 1.21.11
@@ -68,7 +67,7 @@ public class BrigClient implements ClientModInitializer {
         // HUD render
         HudRenderCallback.EVENT.register((drawContext, tickCounter) -> {
             if (mc.player != null && !mc.options.hudHidden) {
-                HudRenderer.render(drawContext, tickCounter.getTickDelta(false));
+                HudRenderer.render(drawContext, tickCounter.getTickProgress(false));
             }
         });
 
