@@ -10,7 +10,7 @@ import ru.brigclient.module.impl.visuals.FullBright;
 @Mixin(LightmapTextureManager.class)
 public class LightmapTextureManagerMixin {
 
-    @ModifyVariable(method = "update", at = @At("STORE"), ordinal = 0)
+    @ModifyVariable(method = "update", at = @At("STORE"), ordinal = 0, require = 0)
     private float brigclient$modifyGamma(float gamma) {
         if (BrigClient.getInstance() != null) {
             FullBright fb = (FullBright) BrigClient.getInstance().getModuleManager().getModuleByName("FullBright");
