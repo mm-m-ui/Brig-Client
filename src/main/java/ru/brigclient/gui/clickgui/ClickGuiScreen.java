@@ -1,7 +1,10 @@
 package ru.brigclient.gui.clickgui;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import ru.brigclient.BrigClient;
@@ -18,8 +21,6 @@ import java.util.List;
  * LMB = toggle module, RMB = open settings panel.
  * Search bar at top.
  * Right Shift to open/close.
- *
- * NOTE: Does NOT call renderBackground() before super.render() to avoid "Can only blur once per frame".
  */
 public class ClickGuiScreen extends Screen {
 
@@ -40,8 +41,6 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Do NOT call renderBackground here before super to avoid blur error.
-        // We draw our own dark overlay.
         context.fill(0, 0, this.width, this.height, ColorUtil.rgba(0, 0, 0, 140));
 
         super.render(context, mouseX, mouseY, delta);
@@ -101,12 +100,12 @@ public class ClickGuiScreen extends Screen {
             int cx = contentX + col * (cardW + gap);
             int cy = startY + row * (cardH + gap);
 
-            if (cy + cardH < contentY || cy > this.height) {
+            if (cy + cardH < contentY || this.height < cy) {
                 i++;
                 continue;
             }
 
-            boolean hovered = mouseX >= cx && mouseX <= cx + cardW && mouseY >= cy && mouseY <= cy + cardH;
+            boolean hovered = cx <= mouseX && mouseX <= cx + cardW && cy <= mouseY && mouseY <= cy + cardH;
             int bg = mod.isEnabled() ? ColorUtil.withAlpha(accentColor, 50) : cardColor;
             if (hovered) bg = ColorUtil.withAlpha(bg, 255);
 
@@ -124,9 +123,10 @@ public class ClickGuiScreen extends Screen {
             String status = mod.isEnabled() ? "ON" : "OFF";
             int stCol = mod.isEnabled() ? accentColor : 0xFF888888;
             context.drawText(textRenderer, status, cx + cardW - 28, cy + 8, stCol, false);
+
             // Description truncated
             String desc = mod.getDescription();
-            if (textRenderer.getWidth(desc) > cardW - 16) {
+            if (cardW - 16 < textRenderer.getWidth(desc)) {
                 desc = textRenderer.trimToWidth(desc, cardW - 20) + "..";
             }
             context.drawText(textRenderer, desc, cx + 8, cy + 20, 0xFFAAAAAA, false);
@@ -166,14 +166,17 @@ public class ClickGuiScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        int button = click.button();
         int leftW = 140;
 
         // Category click
         if (mouseX < leftW) {
             int y = 50;
             for (Category cat : Category.values()) {
-                if (mouseY >= y && mouseY <= y + 22) {
+                if (y <= mouseY && mouseY <= y + 22) {
                     selectedCategory = cat;
                     expandedModule = null;
                     searchQuery = "";
@@ -204,10 +207,10 @@ public class ClickGuiScreen extends Screen {
             int cx = contentX + col * (cardW + gap);
             int cy = contentY + row * (cardH + gap);
 
-            if (mouseX >= cx && mouseX <= cx + cardW && mouseY >= cy && mouseY <= cy + cardH) {
-                if (button == 0) { // LMB toggle
+            if (cx <= mouseX && mouseX <= cx + cardW && cy <= mouseY && mouseY <= cy + cardH) {
+                if (button == 0) {
                     mod.toggle();
-                } else if (button == 1) { // RMB settings
+                } else if (button == 1) {
                     expandedModule = (expandedModule == mod) ? null : mod;
                 }
                 return true;
@@ -221,30 +224,31 @@ public class ClickGuiScreen extends Screen {
             return true;
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyInput input) {
+        int keyCode = input.key();
         if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT) {
             this.close();
             return true;
         }
-        // Simple search input
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE && !searchQuery.isEmpty()) {
             searchQuery = searchQuery.substring(0, searchQuery.length() - 1);
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(char chr, int modifiers) {
+    public boolean charTyped(CharInput input) {
+        char chr = (char) input.codepoint();
         if (Character.isLetterOrDigit(chr) || chr == ' ' || chr == '-') {
             searchQuery += chr;
             return true;
         }
-        return super.charTyped(chr, modifiers);
+        return super.charTyped(input);
     }
 
     @Override
